@@ -1,0 +1,62 @@
+service: wait-and-publish
+
+plugins:
+    - serverless-step-functions
+    - serverless-localstack
+
+provider:
+    name: aws
+    runtime: nodejs14.x
+    environment:
+        AWS_ACTIVE: true
+        STAGE: ${opt:stage, self:provider.stage}
+
+custom:
+    enabled: # Setting enabled paramater based on environment
+        local: false
+        dev: false
+        prod: true
+
+    localstack:
+        host: 'http://localhost'
+        debug: true
+        edgePort: 4566
+        stages:
+            - local
+
+resources:
+    Resources:
+        MyFifoTopic:
+            Type: AWS::SNS::Topic
+            Properties:
+                DisplayName: "My FIFO Topic"
+                TopicName: my-fifo-topic.fifo
+                FifoTopic: true
+
+        MyFifoQueue:
+            Type: AWS::SQS::Queue
+            Properties:
+                QueueName: my-fifo-queue.fifo
+                FifoQueue: true
+
+stepFunctions:
+    stateMachines:
+        flow:
+            name: wait-and-publish-${opt:stage, self:provider.stage}
+            definition:
+                Comment: 'Wait for duration and publish message to SNS'
+                StartAt: WaitForDuration
+                States:
+                    WaitForDuration:
+                        Type: Wait
+                        SecondsPath: $.duration
+                        Next: PublishSNS
+                    PublishSNS:
+                        Type: Task
+                        Resource: arn:aws:states:::sns:publish
+                        Parameters:
+                            TopicArn.$: '$.topicArn'
+                            Message.$: $.message
+                            MessageGroupId.$: $.messageGroupId
+                            MessageDeduplicationId.$: $.messageDeduplicationId
+                        End: true
