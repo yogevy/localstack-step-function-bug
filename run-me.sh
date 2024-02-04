@@ -22,3 +22,4 @@ sleep 10
 echo "***** deploy serverless *****"
 serverless deploy --stage local
 
+npm run start

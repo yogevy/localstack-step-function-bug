@@ -49,7 +49,7 @@ stepFunctions:
                 States:
                     WaitForDuration:
                         Type: Wait
-                        SecondsPath: $.duration
+                        Seconds: 2
                         Next: PublishSNS
                     PublishSNS:
                         Type: Task
